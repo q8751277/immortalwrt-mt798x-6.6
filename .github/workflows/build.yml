@@ -1,0 +1,39 @@
+name: Build N60Pro
+on:
+  push:
+    branches: [ openwrt-24.10-6.6 ]
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: true
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y build-essential clang flex bison g++ gawk gcc-multilib gettext git libncurses-dev libssl-dev python3-distutils rsync unzip zlib1g-dev file wget libelf-dev
+
+      - name: Update feeds
+        run: |
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      - name: Prepare config
+        run: |
+          cp .config .config.tmp
+          cat .config.tmp > .config
+          make defconfig
+
+      - name: Build
+        run: |
+          make -j$(nproc)
+
+      - name: Upload firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: netcore-n60pro-firmware
+          path: bin/targets/mediatek/filogic/
